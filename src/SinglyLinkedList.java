@@ -1,10 +1,10 @@
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.PriorityQueue;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 
-public class SinglyLinkedList<E extends Comparable<E>> {
+public class SinglyLinkedList<E extends Comparable<E>> implements Iterable<E> {
 
     // Внутренний класс Node представляет элемент списка
     private static class Node<E> {
@@ -24,82 +24,40 @@ public class SinglyLinkedList<E extends Comparable<E>> {
     // Добавляем элемент в список
     public void add(E data) {
         // Проверка на null
-        try {
-            if (data == null) {
-                throw new IllegalArgumentException("The null element cannot be added to the list");
-            }
-
-            Node<E> newNode = new Node<>(data);
-
-            // Если список пуст новый узел становится головой
-            if (head == null) {
-                head = newNode;
-            } else {
-                // Иначе добавляем новый в конец
-                Node<E> current = head;
-                while (current.next != null) {
-                    current = current.next;
-                }
-                current.next = newNode;
-            }
-            size++;
-        } catch (IllegalArgumentException e) {
-            System.out.println("Exception: " + e.getMessage());
+        if (data == null) {
+            throw new IllegalArgumentException("The null element cannot be added to the list");
         }
 
+        Node<E> newNode = new Node<>(data);
 
-
-    }
-
-    // Находит N наибольших элементов в списке
-    public List<E> findTopNElements(int n) {
-
-        try {
-            if (n <= 0) {
-                throw new IllegalArgumentException("N must be a positive integer");
-            }
-            if (n > size) {
-                throw new IllegalArgumentException("N cannot be greater than the list size");
-            }
-
-            // Используем для хранения N наибольших элементов
-            PriorityQueue<E> minHeap = new PriorityQueue<>(n);
+        // Если список пуст новый узел становится головой
+        if (head == null) {
+            head = newNode;
+        } else {
+            // Иначе добавляем новый в конец
             Node<E> current = head;
-
-
-            while (current != null) {
-                if (minHeap.size() < n) {
-                    // Если меньше N элементов добавляем текущий
-                    minHeap.offer(current.data);
-                } else if (current.data.compareTo(minHeap.peek()) > 0) {
-                    // Если текущий элемент больше минимального
-                    // удаляем минимальный и добавляем текущий
-                    minHeap.poll();
-                    minHeap.offer(current.data);
-                }
+            while (current.next != null) {
                 current = current.next;
             }
-
-            // Преобразуем в список и сортируем по убыванию
-            List<E> result = new ArrayList<>(minHeap);
-            Collections.sort(result, Collections.reverseOrder());
-            return result;
-        }  catch (IllegalArgumentException e) {
-            System.out.println("Exception while searching for N elements: " + e.getMessage());
-            return Collections.emptyList();
+            current.next = newNode;
         }
+        size++;
     }
 
-
-    public void printList() {
-        Node<E> current = head;
-        while (current != null) {
-            System.out.print(current.data + " ");
-            current = current.next;
+    // Добавляет элемент в начало списка
+    public void addFirst(E data) {
+        if (data == null) {
+            throw new NullPointerException("The null element cannot be added to the list");
         }
-        System.out.println();
+        Node<E> newNode = new Node<>(data);
+        newNode.next = head;
+        head = newNode;
+        size++;
     }
 
+    public Stream<E> stream() {
+        return StreamSupport.stream(spliterator(), false);
+    }
 
     public int size() {
         return size;
@@ -108,4 +66,85 @@ public class SinglyLinkedList<E extends Comparable<E>> {
     public boolean isEmpty() {
         return size == 0;
     }
+
+    // Получить значение по индексу
+    public E get(int index) {
+        if (index < 0 || index >= size) {
+            throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + size);
+        }
+        Node<E> current = head;
+        for (int i = 0; i < index; i++) {
+            current = current.next;
+        }
+        return current.data;
+    }
+
+    // Удалить
+    public void remove(int index) {
+        if (index < 0 || index >= size) {
+            throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + size);
+        }
+
+        if (index == 0) {
+            head = head.next;
+        } else {
+            Node<E> current = head;
+            for (int i = 0; i < index - 1; i++) {
+                current = current.next;
+            }
+            current.next = current.next.next;
+        }
+
+        size--;
+    }
+
+    // Удалить все из списка
+    public void removeAll() {
+        head = null;
+        size = 0;
+    }
+
+    // Преобразует список в массив
+    public Object[] toArray() {
+        Object[] result = new Object[size];
+        int i = 0;
+        for (E e : this) {
+            result[i++] = e;
+        }
+        return result;
+    }
+
+
+    @Override
+    public Iterator<E> iterator() {
+        return new Iterator<E>() {
+            private Node<E> current = head;
+
+            @Override
+            public boolean hasNext() {
+                return current != null;
+            }
+
+            @Override
+            public E next() {
+                if (!hasNext()) {
+                    throw new NoSuchElementException();
+                }
+                E data = current.data;
+                current = current.next;
+                return data;
+            }
+        };
+    }
+
+    @Override
+    public Spliterator<E> spliterator() {
+        return Spliterators.spliteratorUnknownSize(iterator(), Spliterator.ORDERED);
+    }
+
+    @Override
+    public String toString() {
+        return stream().map(Object::toString).collect(Collectors.joining(", ", "[", "]"));
+    }
+
 }
